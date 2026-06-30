@@ -1,0 +1,6 @@
+@EsportsTracker.Api_HostAddress = http://localhost:5150
+
+GET {{EsportsTracker.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
