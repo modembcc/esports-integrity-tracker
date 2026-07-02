@@ -9,7 +9,20 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddHttpClient<PandaScoreClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["PandaScore:BaseUrl"]!);
+    client.DefaultRequestHeaders.Authorization =
+        new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer", builder.Configuration["PandaScore:ApiKey"]);
+});
+
+builder.Services.AddHostedService<MsiSyncService>();
+builder.Services.AddControllers();
+
 var app = builder.Build();
+
+app.MapControllers();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
