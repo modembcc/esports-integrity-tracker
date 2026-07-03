@@ -17,6 +17,23 @@ builder.Services.AddHttpClient<PandaScoreClient>(client =>
             "Bearer", builder.Configuration["PandaScore:ApiKey"]);
 });
 
+builder.Services.AddHttpClient("polymarket-gamma", c =>
+{
+    c.BaseAddress = new Uri(builder.Configuration["Polymarket:GammaBaseUrl"]!);
+    c.Timeout = TimeSpan.FromSeconds(
+        builder.Configuration.GetValue("Polymarket:TimeoutSeconds", 15));
+});
+
+builder.Services.AddHttpClient("polymarket-clob", c =>
+{
+    c.BaseAddress = new Uri(builder.Configuration["Polymarket:ClobBaseUrl"]!);
+    c.Timeout = TimeSpan.FromSeconds(
+        builder.Configuration.GetValue("Polymarket:TimeoutSeconds", 15));
+});
+
+builder.Services.AddScoped<PolymarketClient>();
+builder.Services.AddSingleton<AnomalyDetectionService>();
+builder.Services.AddSingleton<UpsetDetectionService>();
 builder.Services.AddHostedService<MsiSyncService>();
 builder.Services.AddControllers();
 
@@ -32,28 +49,4 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

@@ -7,6 +7,8 @@ public class AppDbContext : DbContext
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<Odds> Odds => Set<Odds>();
+    public DbSet<MarketLink> MarketLinks => Set<MarketLink>();
+    public DbSet<PriceSnapshot> PriceSnapshots => Set<PriceSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,5 +37,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Match>()
             .Property(m => m.Status)
             .HasConversion<string>();
+
+        modelBuilder.Entity<MarketLink>()
+            .HasIndex(l => l.MatchId).IsUnique();
+
+        modelBuilder.Entity<PriceSnapshot>()
+            .HasIndex(s => new { s.MarketLinkId, s.ClobTokenId, s.CapturedAtUtc });
     }
 }
