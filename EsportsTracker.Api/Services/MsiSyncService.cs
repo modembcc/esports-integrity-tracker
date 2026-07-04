@@ -68,7 +68,6 @@ public class MsiSyncService : BackgroundService
             match.Team2Id = team2.Id;
             match.ScheduledTime = dto.ScheduledAt ?? DateTime.UtcNow;
             match.Status = MapStatus(dto.Status);
-            match.Stage = Stage.PlayIn; // TODO: derive from tournament data later
             match.WinnerId = dto.WinnerId is null
                 ? null
                 : (team1.ExternalId == dto.WinnerId.ToString() ? team1.Id : team2.Id);
