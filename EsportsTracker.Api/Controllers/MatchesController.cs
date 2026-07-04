@@ -21,7 +21,7 @@ public class MatchesController : ControllerBase
             query = query.Where(m => m.Status == status);
 
         var matches = await query
-            .OrderBy(m => m.ScheduledTime)
+            .OrderByDescending(m => m.ScheduledTime)
             .Select(m => new
             {
                 m.Id,
