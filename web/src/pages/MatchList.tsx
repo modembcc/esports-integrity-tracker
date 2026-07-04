@@ -8,7 +8,6 @@ type Match = {
   id: number;
   team1: string;
   team2: string;
-  stage: string;
   status: MatchStatus;
   scheduledTime: string;
   winner: string | null;
@@ -125,19 +124,6 @@ export default function MatchList() {
                 <TeamName name={m.team1} winner={m.winner} />
                 <span style={{ color: "var(--muted)" }}> vs </span>
                 <TeamName name={m.team2} winner={m.winner} />
-              </span>
-
-              {/* stage */}
-              <span
-                className="mono"
-                style={{
-                  fontSize: 11,
-                  color: "var(--muted)",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
-              >
-                {m.stage}
               </span>
 
               {/* timing + status */}

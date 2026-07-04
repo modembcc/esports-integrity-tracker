@@ -27,7 +27,6 @@ public class MatchesController : ControllerBase
                 m.Id,
                 Team1 = m.Team1.Name,
                 Team2 = m.Team2.Name,
-                m.Stage,
                 m.Status,
                 m.ScheduledTime,
                 Winner = m.Winner != null ? m.Winner.Name : null
@@ -51,7 +50,6 @@ public class MatchesController : ControllerBase
             match.Id,
             Team1 = match.Team1.Name,
             Team2 = match.Team2.Name,
-            match.Stage,
             match.Status,
             match.ScheduledTime,
             Winner = match.Winner?.Name
