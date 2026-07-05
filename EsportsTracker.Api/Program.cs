@@ -33,7 +33,7 @@ builder.Services.AddHttpClient("polymarket-clob", c =>
 builder.Services.AddScoped<PolymarketClient>();
 builder.Services.AddSingleton<AnomalyDetectionService>();
 builder.Services.AddSingleton<UpsetDetectionService>();
-builder.Services.AddHostedService<MsiSyncService>();
+builder.Services.AddHostedService<TournamentSyncService>();
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     p.WithOrigins("http://localhost:5173")
@@ -51,7 +51,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// NOTE: intentionally no UseHttpsRedirection() in dev — it turns CORS preflights
+// into 307s. Deploy platform terminates TLS. Re-add behind !IsDevelopment() if wanted.
 app.UseCors();
 
 app.MapControllers();

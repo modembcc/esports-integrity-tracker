@@ -1,16 +1,20 @@
-// Controllers/InsightsController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+/// <summary>
+/// Insight endpoints over matches (anomalies, upsets, per-match odds).
+/// Lives under api/matches since these are views/sub-resources of matches,
+/// grouped here because they share the detection services + MarketLink loading.
+/// </summary>
 [ApiController]
 [Route("api/matches")]
-public class InsightsController : ControllerBase
+public class MatchInsightsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly AnomalyDetectionService _anomalies;
     private readonly UpsetDetectionService _upsets;
 
-    public InsightsController(
+    public MatchInsightsController(
         AppDbContext db,
         AnomalyDetectionService anomalies,
         UpsetDetectionService upsets)
@@ -28,7 +32,7 @@ public class InsightsController : ControllerBase
         var response = links
             .Select(link => new
             {
-                MatchId = link.MatchId,
+                link.MatchId,
                 Team1 = link.Match.Team1.Name,
                 Team2 = link.Match.Team2.Name,
                 link.Match.ScheduledTime,
@@ -51,14 +55,12 @@ public class InsightsController : ControllerBase
             .Where(l => l.Match.Winner != null)
             .Select(link => new
             {
-                MatchId = link.MatchId,
+                link.MatchId,
                 Team1 = link.Match.Team1.Name,
                 Team2 = link.Match.Team2.Name,
                 Winner = link.Match.Winner!.Name,
                 Upset = _upsets.Detect(
                     snapshotsByLink.GetValueOrDefault(link.Id, new List<PriceSnapshot>()),
-                    // Winner name must match Polymarket's spelling. If your
-                    // PandaScore team names differ, map via link.OutcomeNames here.
                     ResolveOutcomeName(link, link.Match.Winner!.Name),
                     link.GameStartTimeUtc),
             })
@@ -67,6 +69,48 @@ public class InsightsController : ControllerBase
             .ToList();
 
         return Ok(response);
+    }
+
+    [HttpGet("{id:int}/odds")]
+    public async Task<ActionResult> GetOdds(int id)
+    {
+        var link = await _db.MarketLinks
+            .Include(l => l.Match).ThenInclude(m => m.Team1)
+            .Include(l => l.Match).ThenInclude(m => m.Team2)
+            .FirstOrDefaultAsync(l => l.MatchId == id);
+
+        if (link is null)
+            return NotFound(new { message = "No market linked to this match" });
+
+        var snapshots = await _db.PriceSnapshots
+            .Where(s => s.MarketLinkId == link.Id)
+            .OrderBy(s => s.CapturedAtUtc)
+            .ToListAsync();
+
+        var anomalies = _anomalies.Detect(snapshots, link.GameStartTimeUtc);
+
+        return Ok(new
+        {
+            MatchId = id,
+            Team1 = link.Match.Team1.Name,
+            Team2 = link.Match.Team2.Name,
+            link.GameStartTimeUtc,
+            // One series per outcome token: timestamps between tokens aren't
+            // guaranteed to align, so we don't force them into shared rows.
+            Series = snapshots
+                .GroupBy(s => s.OutcomeName)
+                .Select(g => new
+                {
+                    Outcome = g.Key,
+                    Points = g.Select(s => new
+                    {
+                        T = new DateTimeOffset(s.CapturedAtUtc, TimeSpan.Zero)
+                                .ToUnixTimeMilliseconds(),
+                        P = s.Price,
+                    }),
+                }),
+            Anomalies = anomalies, // passthrough — shape defined by AnomalyDetectionService
+        });
     }
 
     /// <summary>

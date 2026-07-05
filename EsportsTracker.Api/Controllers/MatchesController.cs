@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/matches")]
 public class MatchesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -20,8 +20,13 @@ public class MatchesController : ControllerBase
         if (status is not null)
             query = query.Where(m => m.Status == status);
 
+        // Scheduled: soonest first (next match on top).
+        // Everything else: most recent first.
+        query = status == MatchStatus.Scheduled
+            ? query.OrderBy(m => m.ScheduledTime)
+            : query.OrderByDescending(m => m.ScheduledTime);
+
         var matches = await query
-            .OrderByDescending(m => m.ScheduledTime)
             .Select(m => new
             {
                 m.Id,
