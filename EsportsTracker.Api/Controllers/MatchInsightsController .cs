@@ -77,6 +77,7 @@ public class MatchInsightsController : ControllerBase
         var link = await _db.MarketLinks
             .Include(l => l.Match).ThenInclude(m => m.Team1)
             .Include(l => l.Match).ThenInclude(m => m.Team2)
+            .Include(l => l.Match).ThenInclude(m => m.Winner)
             .FirstOrDefaultAsync(l => l.MatchId == id);
 
         if (link is null)
@@ -94,6 +95,10 @@ public class MatchInsightsController : ControllerBase
             MatchId = id,
             Team1 = link.Match.Team1.Name,
             Team2 = link.Match.Team2.Name,
+            Winner = link.Match.Winner?.Name,
+            WinnerOutcome = link.Match.Winner is null
+                ? null
+                : ResolveOutcomeName(link, link.Match.Winner.Name),
             link.GameStartTimeUtc,
             // One series per outcome token: timestamps between tokens aren't
             // guaranteed to align, so we don't force them into shared rows.

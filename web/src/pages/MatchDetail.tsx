@@ -15,14 +15,12 @@ type OddsResponse = {
   matchId: number;
   team1: string;
   team2: string;
+  winner: string | null;
+  winnerOutcome: string | null;
   gameStartTimeUtc: string | null;
   series: { outcome: string; points: { t: number; p: number }[] }[];
-  // Shape comes from AnomalyDetectionService — tighten this type
-  // once the anomaly result record is final.
   anomalies: Record<string, unknown>[];
 };
-
-const SERIES_COLORS = ["var(--amber)", "var(--blue)"];
 
 export default function MatchDetail() {
   const { id } = useParams();
@@ -68,6 +66,11 @@ export default function MatchDetail() {
     (a, b) => (a.t as number) - (b.t as number),
   );
   const outcomeNames = data.series.map((s) => s.outcome);
+
+  const seriesColor = (outcome: string, i: number) => {
+    if (!data.winnerOutcome) return i === 0 ? "var(--amber)" : "var(--blue)"; // unfinished: index fallback
+    return outcome === data.winnerOutcome ? "var(--amber)" : "var(--muted)"; // finished: gold winner, muted loser
+  };
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -118,7 +121,9 @@ export default function MatchDetail() {
               />
               <Tooltip
                 labelFormatter={(t) => new Date(t as number).toLocaleString()}
-                formatter={(v: number) => `${(v * 100).toFixed(1)}%`}
+                formatter={(v) =>
+                  typeof v === "number" ? `${(v * 100).toFixed(1)}%` : "—"
+                }
                 contentStyle={{
                   background: "var(--bg)",
                   border: "1px solid var(--border)",
@@ -130,7 +135,7 @@ export default function MatchDetail() {
                   type="stepAfter"
                   dataKey={name}
                   connectNulls
-                  stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
+                  stroke={seriesColor(name, i)}
                   strokeWidth={2}
                   dot={false}
                 />
@@ -167,7 +172,7 @@ export default function MatchDetail() {
                 style={{
                   width: 12,
                   height: 3,
-                  background: SERIES_COLORS[i % SERIES_COLORS.length],
+                  background: seriesColor(name, i),
                   display: "inline-block",
                 }}
               />

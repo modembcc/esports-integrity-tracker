@@ -6,6 +6,9 @@ docker run --name esports-postgres -e POSTGRES_PASSWORD=mypassword -e POSTGRES_D
 
 dotnet ef database update
 
-Available Endpoints:
-/api/teams
-/api/matches
+dotnet run
+
+Invoke-RestMethod -Method Post -Uri "http://localhost:5150/api/marketlinks" `     -ContentType "application/json"`
+-Body '{"matchId": 11, "slug": "lol-tsw-tes-2026-07-04"}'
+
+Then restart the API server.

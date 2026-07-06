@@ -133,14 +133,11 @@ public class TournamentSyncService : BackgroundService
         // unlike PandaScoreClient which is constructor-injected (typed client).
         var polymarket = scope.ServiceProvider.GetRequiredService<PolymarketClient>();
 
-        // TEMP: removed Completed filter to backfill match 12
-        var links = await db.MarketLinks.Include(l => l.Match).ToListAsync(ct);
-
-        // // Skip settled matches: their history is final, no point re-polling.
-        // var links = await db.MarketLinks
-        //     .Include(l => l.Match)
-        //     .Where(l => l.Match.Status != MatchStatus.Completed)
-        //     .ToListAsync(ct);
+        // Skip settled matches: their history is final, no point re-polling.
+        var links = await db.MarketLinks
+            .Include(l => l.Match)
+            .Where(l => l.SettledAtUtc == null)
+            .ToListAsync(ct);
 
         if (links.Count == 0)
         {
@@ -156,6 +153,23 @@ public class TournamentSyncService : BackgroundService
                 _logger.LogInformation(
                     "MarketLink {LinkId} ({Slug}): {Count} new price points",
                     link.Id, link.PolymarketSlug, newPoints);
+                if (link.Match.Status == MatchStatus.Completed)
+                {
+                    var hasAnyHistory = newPoints > 0 ||
+                        await db.PriceSnapshots.AnyAsync(s => s.MarketLinkId == link.Id, ct);
+
+                    if (hasAnyHistory)
+                    {
+                        link.SettledAtUtc = DateTime.UtcNow;
+                        _logger.LogInformation("MarketLink {LinkId} settled, final history captured", link.Id);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "MarketLink {LinkId} match is Completed but no price history exists — not settling, check token ids",
+                            link.Id);
+                    }
+                }
             }
             catch (Exception ex)
             {
