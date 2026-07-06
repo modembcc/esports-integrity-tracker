@@ -14,4 +14,5 @@ public class MarketLink
 
     public DateTime? GameStartTimeUtc { get; set; }
     public DateTime LinkedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? SettledAtUtc { get; set; }
 }
