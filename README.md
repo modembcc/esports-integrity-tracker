@@ -6,7 +6,7 @@ swings and underdog upsets. Built in six days as an ASP.NET Core + PostgreSQL AP
 with a React dashboard, syncing live match data from PandaScore and win-probability
 history from Polymarket.
 
-**Live demo:** not deployed yet — see [Roadmap](#roadmap).
+**Live demo:** https://web-production-a44c4.up.railway.app (API: https://api-production-1f805.up.railway.app)
 
 ## Screenshots
 
@@ -101,6 +101,5 @@ npm test
 
 ## Roadmap
 
-- Deploy to a free-tier host (Railway/Render/Azure) and link the live URL here.
 - Rate-bound anomaly detection (shift over X% within a rolling time window, not
   just total deviation from the opening price).
