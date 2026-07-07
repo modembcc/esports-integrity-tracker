@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: localdevpassword # local only; deploy uses managed PG
+      POSTGRES_DB: esports
+    volumes:
+      - pgdata:/var/lib/postgresql/data # data survives container recreation
+    healthcheck: # so the API waits for a READY db,
+      test: ["CMD-SHELL", "pg_isready -U tracker -d esports"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./EsportsTracker.Api
+    depends_on:
+      db:
+        condition: service_healthy # not just "started" — started ≠ accepting connections
+    environment:
+      # "db" is the service name — Docker's internal DNS resolves it.
+      # localhost inside a container means THAT container, not your machine.
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=esports;Username=tracker;Password=localdevpassword"
+      PandaScore__BaseUrl: "https://api.pandascore.co"
+      PandaScore__ApiKey: "${PANDASCORE_API_KEY}" # pulled from .env file / shell
+      PandaScore__SerieId: "10676"
+      Polymarket__GammaBaseUrl: "https://gamma-api.polymarket.com"
+      Polymarket__ClobBaseUrl: "https://clob.polymarket.com"
+      Cors__AllowedOrigin: "http://localhost:3000"
+    ports:
+      - "5150:8080" # host:container — keeps your VITE_API_URL port familiar
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_API_URL: "http://localhost:5150" # baked into the JS bundle at build
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+
+volumes:
+  pgdata:

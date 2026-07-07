@@ -36,7 +36,9 @@ builder.Services.AddSingleton<UpsetDetectionService>();
 builder.Services.AddHostedService<TournamentSyncService>();
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.WithOrigins("http://localhost:5173")
+    p.WithOrigins(
+        builder.Configuration["Cors:AllowedOrigin"] ?? "http://localhost:5173",
+        "http://localhost:5173")   // keep dev working regardless
      .AllowAnyHeader()
      .AllowAnyMethod()));
 
@@ -56,5 +58,11 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();   // applies pending migrations; no-op when current
+}
 
 app.Run();

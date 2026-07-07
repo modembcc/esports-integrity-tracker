@@ -18,11 +18,29 @@ export default function Navbar() {
           justifyContent: "space-between",
         }}
       >
-        <Link to="/">
-          <h1 style={{ fontSize: 20 }}>
-            ODDS<span style={{ color: "var(--amber)" }}>WATCH</span>
-          </h1>
-        </Link>
+        <nav style={{ display: "flex", gap: 20 }}>
+          <Link
+            to="/"
+            className="mono"
+            style={{ fontSize: 12, color: "var(--muted)" }}
+          >
+            MATCHES
+          </Link>
+          <Link
+            to="/dashboard"
+            className="mono"
+            style={{ fontSize: 12, color: "var(--muted)" }}
+          >
+            INTEGRITY
+          </Link>
+          <Link
+            to="/admin/links"
+            className="mono"
+            style={{ fontSize: 12, color: "var(--muted)" }}
+          >
+            LINKS
+          </Link>
+        </nav>
         <span className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
           esports odds & integrity tracker
         </span>

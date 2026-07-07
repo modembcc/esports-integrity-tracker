@@ -41,6 +41,12 @@ public class MatchInsightsController : ControllerBase
                     link.GameStartTimeUtc),
             })
             .Where(x => x.Anomalies.Count > 0)
+            .Select(x => new
+            {
+                x.MatchId, x.Team1, x.Team2, x.ScheduledTime, x.Anomalies,
+                MaxShift = x.Anomalies.Max(a => a.Shift),
+            })
+            .OrderByDescending(x => x.MaxShift)
             .ToList();
 
         return Ok(response);

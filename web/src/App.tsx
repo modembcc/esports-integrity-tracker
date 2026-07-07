@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import MatchList from "./pages/MatchList";
 import MatchDetail from "./pages/MatchDetail";
+import Dashboard from "./pages/Dashboard";
 import "./theme.css";
+import LinkMarkets from "./pages/LinkMarkets";
 
 export default function App() {
   return (
@@ -12,6 +14,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<MatchList />} />
           <Route path="/matches/:id" element={<MatchDetail />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/admin/links" element={<LinkMarkets />} />
         </Routes>
       </main>
     </BrowserRouter>
