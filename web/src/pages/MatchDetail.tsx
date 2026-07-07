@@ -19,7 +19,14 @@ type OddsResponse = {
   winnerOutcome: string | null;
   gameStartTimeUtc: string | null;
   series: { outcome: string; points: { t: number; p: number }[] }[];
-  anomalies: Record<string, unknown>[];
+  anomalies: {
+    outcomeName: string;
+    fromPrice: number;
+    toPrice: number;
+    shift: number;
+    fromTimeUtc: string;
+    toTimeUtc: string;
+  }[];
 };
 
 export default function MatchDetail() {
@@ -140,6 +147,15 @@ export default function MatchDetail() {
                   dot={false}
                 />
               ))}
+              {data.anomalies.map((a, i) => (
+                <ReferenceLine
+                  key={`anom-${i}`}
+                  x={new Date(a.toTimeUtc).getTime()}
+                  stroke="var(--red)"
+                  strokeDasharray="4 4"
+                  label={{ value: "⚠", fill: "var(--red)", fontSize: 13 }}
+                />
+              ))}
               {data.gameStartTimeUtc && (
                 <ReferenceLine
                   x={new Date(data.gameStartTimeUtc).getTime()}
@@ -201,7 +217,9 @@ export default function MatchDetail() {
               className="mono"
               style={{ fontSize: 12, margin: "4px 0" }}
             >
-              {JSON.stringify(a)}
+              {a.outcomeName}: {(a.fromPrice * 100).toFixed(0)}% →{" "}
+              {(a.toPrice * 100).toFixed(0)}% ({(a.shift * 100).toFixed(0)}pt
+              shift) by {new Date(a.toTimeUtc).toLocaleString()}
             </p>
           ))}
         </div>
