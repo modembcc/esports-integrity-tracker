@@ -88,6 +88,53 @@ public class DetectionServiceTests
     }
 
     [Fact]
+    public void Detect_FlagsBothOutcomes_WhenBothBreachThreshold()
+    {
+        var snapshots = new List<PriceSnapshot>
+        {
+            Snap("T1", 0.60m, 300),
+            Snap("T1", 0.35m, 60), // 25-point drop
+            Snap("T2", 0.40m, 300),
+            Snap("T2", 0.65m, 60), // 25-point rise
+        };
+
+        var results = Detector().Detect(snapshots, GameStart);
+
+        Assert.Equal(2, results.Count);
+        Assert.Contains(results, r => r.OutcomeName == "T1");
+        Assert.Contains(results, r => r.OutcomeName == "T2");
+    }
+
+    [Fact]
+    public void Detect_ExactlyAtThreshold_IsNotFlagged()
+    {
+        // Current behavior is a strict ">" comparison — a shift equal to the
+        // configured threshold does not breach it. Documented here so a future
+        // change to "<=" is a deliberate decision, not an accidental regression.
+        var snapshots = new List<PriceSnapshot>
+        {
+            Snap("T1", 0.60m, 300),
+            Snap("T1", 0.45m, 60), // exactly 0.15
+        };
+
+        Assert.Empty(Detector(threshold: 0.15m).Detect(snapshots, GameStart));
+    }
+
+    [Fact]
+    public void Detect_IsOrderIndependent_ForUnsortedInput()
+    {
+        var snapshots = new List<PriceSnapshot>
+        {
+            Snap("T1", 0.40m, 120),
+            Snap("T1", 0.60m, 300),
+            Snap("T1", 0.41m, 60),
+        };
+
+        var anomaly = Assert.Single(Detector().Detect(snapshots, GameStart));
+        Assert.Equal(0.60m, anomaly.FromPrice);
+    }
+
+    [Fact]
     public void UpsetDetect_FlagsUnderdogWin()
     {
         var snapshots = new List<PriceSnapshot>
@@ -115,5 +162,31 @@ public class DetectionServiceTests
 
         Assert.Null(new UpsetDetectionService()
             .Detect(snapshots, "Hanwha Life Esports", GameStart));
+    }
+
+    [Fact]
+    public void UpsetDetect_ReturnsNull_WhenWinnerHasNoPreMatchSnapshot()
+    {
+        // Only in-match/post-start data exists for the winner — nothing to
+        // compare against, so this must not be treated as an upset.
+        var snapshots = new List<PriceSnapshot>
+        {
+            Snap("Team Secret Whales", 0.90m, -10),
+        };
+
+        Assert.Null(new UpsetDetectionService()
+            .Detect(snapshots, "Team Secret Whales", GameStart));
+    }
+
+    [Fact]
+    public void UpsetDetect_ReturnsNull_WhenGameStartTimeIsUnknown()
+    {
+        var snapshots = new List<PriceSnapshot>
+        {
+            Snap("Team Secret Whales", 0.28m, 15),
+        };
+
+        Assert.Null(new UpsetDetectionService()
+            .Detect(snapshots, "Team Secret Whales", gameStartTimeUtc: null));
     }
 }
