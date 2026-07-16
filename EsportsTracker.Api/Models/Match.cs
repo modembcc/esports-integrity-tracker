@@ -2,6 +2,9 @@ public class Match
 {
     public int Id { get; set; }
 
+    public int LeagueId { get; set; }
+    public League League { get; set; } = null!;
+
     public int Team1Id { get; set; }
     public Team Team1 { get; set; } = null!;
 

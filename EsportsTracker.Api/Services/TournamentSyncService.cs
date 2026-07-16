@@ -5,7 +5,7 @@ public class TournamentSyncService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly PandaScoreClient _pandaScore;
     private readonly ILogger<TournamentSyncService> _logger;
-    private readonly int _serieId;
+    private readonly List<PandaScoreLeagueOptions> _leagues;
 
     private static readonly TimeSpan SyncInterval = TimeSpan.FromMinutes(15);
 
@@ -18,7 +18,8 @@ public class TournamentSyncService : BackgroundService
         _scopeFactory = scopeFactory;
         _pandaScore = pandaScore;
         _logger = logger;
-        _serieId = config.GetValue<int>("PandaScore:SerieId");
+        _leagues = config.GetSection("PandaScore:Leagues").Get<List<PandaScoreLeagueOptions>>()
+            ?? new List<PandaScoreLeagueOptions>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -57,8 +58,29 @@ public class TournamentSyncService : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var matches = await _pandaScore.GetMatchesForSerieAsync(_serieId, ct);
-        _logger.LogInformation("Fetched {Count} matches from PandaScore", matches.Count);
+        foreach (var leagueConfig in _leagues)
+        {
+            try
+            {
+                await SyncLeagueMatchesAsync(db, leagueConfig, ct);
+            }
+            catch (Exception ex)
+            {
+                // One bad serie id shouldn't stop the rest of the leagues from syncing.
+                _logger.LogError(ex, "PandaScore sync failed for league {League} (serie {SerieId})",
+                    leagueConfig.Name, leagueConfig.SerieId);
+            }
+        }
+    }
+
+    private async Task SyncLeagueMatchesAsync(
+        AppDbContext db, PandaScoreLeagueOptions leagueConfig, CancellationToken ct)
+    {
+        var league = await UpsertLeagueAsync(db, leagueConfig, ct);
+
+        var matches = await _pandaScore.GetMatchesForSerieAsync(leagueConfig.SerieId, ct);
+        _logger.LogInformation("Fetched {Count} matches from PandaScore for {League}",
+            matches.Count, leagueConfig.Name);
 
         foreach (var dto in matches)
         {
@@ -77,6 +99,7 @@ public class TournamentSyncService : BackgroundService
                 db.Matches.Add(match);
             }
 
+            match.LeagueId = league.Id;
             match.Team1Id = team1.Id;
             match.Team2Id = team2.Id;
             match.ScheduledTime = dto.ScheduledAt ?? DateTime.UtcNow;
@@ -87,6 +110,26 @@ public class TournamentSyncService : BackgroundService
         }
 
         await db.SaveChangesAsync(ct);
+    }
+
+    private static async Task<League> UpsertLeagueAsync(
+        AppDbContext db, PandaScoreLeagueOptions config, CancellationToken ct)
+    {
+        var league = await db.Leagues
+            .FirstOrDefaultAsync(l => l.PandaScoreSerieId == config.SerieId, ct);
+
+        if (league is null)
+        {
+            league = new League { Name = config.Name, PandaScoreSerieId = config.SerieId };
+            db.Leagues.Add(league);
+            await db.SaveChangesAsync(ct); // save now so league.Id is available
+        }
+        else
+        {
+            league.Name = config.Name; // keep name in sync with config
+        }
+
+        return league;
     }
 
     private static async Task<Team> UpsertTeamAsync(

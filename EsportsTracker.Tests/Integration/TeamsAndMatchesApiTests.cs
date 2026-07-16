@@ -42,8 +42,17 @@ public class TeamsAndMatchesApiTests : IClassFixture<ApiFactory>
         var team1 = await SeedTeamAsync("Home");
         var team2 = await SeedTeamAsync("Away");
 
+        var league = new League
+        {
+            Name = $"Test League {Guid.NewGuid():N}",
+            PandaScoreSerieId = Random.Shared.Next(1, int.MaxValue),
+        };
+        db.Leagues.Add(league);
+        await db.SaveChangesAsync();
+
         var match = new Match
         {
+            LeagueId = league.Id,
             Team1Id = team1.Id,
             Team2Id = team2.Id,
             Status = status,

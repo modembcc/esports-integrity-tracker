@@ -10,15 +10,20 @@ public class MatchesController : ControllerBase
     public MatchesController(AppDbContext db) => _db = db;
 
     [HttpGet]
-    public async Task<ActionResult> GetAll([FromQuery] MatchStatus? status)
+    public async Task<ActionResult> GetAll(
+        [FromQuery] MatchStatus? status, [FromQuery] int? leagueId)
     {
         var query = _db.Matches
+            .Include(m => m.League)
             .Include(m => m.Team1)
             .Include(m => m.Team2)
             .AsQueryable();
 
         if (status is not null)
             query = query.Where(m => m.Status == status);
+
+        if (leagueId is not null)
+            query = query.Where(m => m.LeagueId == leagueId);
 
         // Scheduled: soonest first (next match on top).
         // Everything else: most recent first.
@@ -30,6 +35,7 @@ public class MatchesController : ControllerBase
             .Select(m => new
             {
                 m.Id,
+                League = m.League.Name,
                 Team1 = m.Team1.Name,
                 Team2 = m.Team2.Name,
                 m.Status,
@@ -45,6 +51,7 @@ public class MatchesController : ControllerBase
     public async Task<ActionResult> GetById(int id)
     {
         var match = await _db.Matches
+            .Include(m => m.League)
             .Include(m => m.Team1)
             .Include(m => m.Team2)
             .Include(m => m.Winner)
@@ -53,6 +60,7 @@ public class MatchesController : ControllerBase
         return match is null ? NotFound() : Ok(new
         {
             match.Id,
+            League = match.League.Name,
             Team1 = match.Team1.Name,
             Team2 = match.Team2.Name,
             match.Status,

@@ -24,7 +24,10 @@ services:
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=esports;Username=tracker;Password=localdevpassword"
       PandaScore__BaseUrl: "https://api.pandascore.co"
       PandaScore__ApiKey: "${PANDASCORE_API_KEY}" # pulled from .env file / shell
-      PandaScore__SerieId: "10676"
+      PandaScore__Leagues__0__Name: "Mid-Season Invitational 2026"
+      PandaScore__Leagues__0__SerieId: "10676"
+      PandaScore__Leagues__1__Name: "Esports World Cup 2026"
+      PandaScore__Leagues__1__SerieId: "10765"
       Polymarket__GammaBaseUrl: "https://gamma-api.polymarket.com"
       Polymarket__ClobBaseUrl: "https://clob.polymarket.com"
       Cors__AllowedOrigin: "http://localhost:3000"
