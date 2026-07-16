@@ -4,6 +4,7 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+    public DbSet<League> Leagues => Set<League>();
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<Odds> Odds => Set<Odds>();
@@ -12,6 +13,15 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<League>()
+            .HasIndex(l => l.PandaScoreSerieId).IsUnique();
+
+        modelBuilder.Entity<Match>()
+            .HasOne(m => m.League)
+            .WithMany(l => l.Matches)
+            .HasForeignKey(m => m.LeagueId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<Match>()
             .HasOne(m => m.Team1)
             .WithMany(t => t.MatchesAsTeam1)

@@ -6,11 +6,17 @@ type MatchStatus = "Scheduled" | "Live" | "Finished" | "Cancelled";
 
 type Match = {
   id: number;
+  league: string;
   team1: string;
   team2: string;
   status: MatchStatus;
   scheduledTime: string;
   winner: string | null;
+};
+
+type League = {
+  id: number;
+  name: string;
 };
 
 const STATUS_FILTERS: (MatchStatus | "All")[] = [
@@ -22,14 +28,26 @@ const STATUS_FILTERS: (MatchStatus | "All")[] = [
 
 export default function MatchList() {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [leagues, setLeagues] = useState<League[]>([]);
   const [filter, setFilter] = useState<MatchStatus | "All">("All");
+  const [leagueFilter, setLeagueFilter] = useState<number | "All">("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/api/leagues`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setLeagues)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
-    const qs = filter === "All" ? "" : `?status=${filter}`;
-    fetch(`${import.meta.env.VITE_API_URL}/api/matches${qs}`)
+    const params = new URLSearchParams();
+    if (filter !== "All") params.set("status", filter);
+    if (leagueFilter !== "All") params.set("leagueId", String(leagueFilter));
+    const qs = params.toString();
+    fetch(`${import.meta.env.VITE_API_URL}/api/matches${qs ? `?${qs}` : ""}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -40,7 +58,7 @@ export default function MatchList() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, [filter]);
+  }, [filter, leagueFilter]);
 
   return (
     <div>
@@ -53,7 +71,32 @@ export default function MatchList() {
         }}
       >
         <h2>Matches</h2>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <select
+            className="mono"
+            value={leagueFilter}
+            onChange={(e) =>
+              setLeagueFilter(
+                e.target.value === "All" ? "All" : Number(e.target.value),
+              )
+            }
+            style={{
+              fontSize: 11,
+              padding: "5px 10px",
+              borderRadius: 6,
+              cursor: "pointer",
+              background: "var(--panel)",
+              color: "var(--muted)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <option value="All">ALL LEAGUES</option>
+            {leagues.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name.toUpperCase()}
+              </option>
+            ))}
+          </select>
           {STATUS_FILTERS.map((s) => (
             <button
               key={s}
@@ -121,6 +164,17 @@ export default function MatchList() {
                   textAlign: "left",
                 }}
               >
+                <span
+                  className="mono"
+                  style={{
+                    fontSize: 10,
+                    color: "var(--muted)",
+                    display: "block",
+                    marginBottom: 2,
+                  }}
+                >
+                  {m.league.toUpperCase()}
+                </span>
                 <TeamName name={m.team1} winner={m.winner} />
                 <span style={{ color: "var(--muted)" }}> vs </span>
                 <TeamName name={m.team2} winner={m.winner} />
